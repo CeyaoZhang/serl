@@ -140,6 +140,7 @@ def train_reward_classifier(observation_space, action_space):
         # Sample equal number of positive and negative examples
         pos_sample = next(pos_iterator)
         neg_sample = next(neg_iterator)
+        
         # Merge and create labels
         sample = concat_batches(
             pos_sample["next_observations"], neg_sample["observations"], axis=0

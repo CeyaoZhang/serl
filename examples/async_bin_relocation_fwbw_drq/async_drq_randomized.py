@@ -19,10 +19,6 @@ from serl_launcher.common.evaluation import evaluate
 from serl_launcher.utils.timer_utils import Timer
 from serl_launcher.wrappers.chunking import ChunkingWrapper
 from serl_launcher.utils.train_utils import concat_batches
-
-from agentlace.trainer import TrainerServer, TrainerClient
-from agentlace.data.data_store import QueuedDataStore
-
 from serl_launcher.utils.launcher import (
     make_drq_agent,
     make_trainer_config,
@@ -31,6 +27,10 @@ from serl_launcher.utils.launcher import (
 from serl_launcher.data.data_store import MemoryEfficientReplayBufferDataStore
 from serl_launcher.wrappers.serl_obs_wrappers import SERLObsWrapper
 from serl_launcher.wrappers.front_camera_wrapper import FrontCameraWrapper
+
+from agentlace.trainer import TrainerServer, TrainerClient
+from agentlace.data.data_store import QueuedDataStore
+
 from franka_env.envs.relative_env import RelativeFrame
 from franka_env.envs.wrappers import (
     SpacemouseIntervention,
@@ -72,9 +72,7 @@ flags.DEFINE_string("demo_path", None, "Path to the demo data.")
 flags.DEFINE_integer("checkpoint_period", 0, "Period to save checkpoints.")
 flags.DEFINE_string("checkpoint_path", None, "Path to save checkpoints.")
 
-flags.DEFINE_integer(
-    "eval_checkpoint_step", 0, "evaluate the policy from ckpt at this step"
-)
+flags.DEFINE_integer("eval_checkpoint_step", 0, "evaluate the policy from ckpt at this step")
 flags.DEFINE_integer("eval_n_trajs", 5, "Number of trajectories for evaluation.")
 flags.DEFINE_string("fwbw", "fw", "forward or backward task")
 
@@ -223,8 +221,10 @@ def actor(
     }
 
     while step["fw"] < FLAGS.max_steps or step["bw"] < FLAGS.max_steps:
+        
         timer.tick("total")
         task_name = id_to_task[env.task_id]
+        
         with timer.context("sample_actions"):
             if step[task_name] < FLAGS.random_steps:
                 actions = env.action_space.sample()
@@ -279,6 +279,7 @@ def actor(
                 obs, _ = env.reset()
 
         timer.tock("total")
+
         for name, task_step in step.items():
             if task_step % FLAGS.steps_per_update == 0:
                 clients[name].update()
@@ -368,13 +369,17 @@ def learner(rng, agent: DrQAgent, replay_buffer, demo_buffer):
         desc=f"Updating {FLAGS.fwbw} learner",
         leave=True,
     )
+
+
     while update_steps < FLAGS.max_steps:
         if not update_steps < env_steps:
             time.sleep(1)
             continue
+
         # run n-1 critic updates and 1 critic + actor update.
         # This makes training on GPU faster by reducing the large batch transfer time from CPU to GPU
         for critic_step in range(FLAGS.critic_actor_ratio - 1):
+            
             with timer.context("sample_replay_buffer"):
                 batch = next(replay_iterator)
                 demo_batch = next(demo_iterator)
@@ -434,6 +439,7 @@ def main(_):
     env = SERLObsWrapper(env)
     env = ChunkingWrapper(env, obs_horizon=1, act_exec_horizon=None)
     env = FrontCameraWrapper(env)
+
     image_keys = [key for key in env.observation_space.keys() if key != "state"]
 
     if FLAGS.actor:
@@ -460,6 +466,7 @@ def main(_):
             image_keys=front_image_keys,
             checkpoint_path=FLAGS.fw_reward_classifier_ckpt_path,
         )
+
         rng, key = jax.random.split(rng)
         bw_classifier_func = load_classifier_func(
             key=key,
@@ -467,12 +474,13 @@ def main(_):
             image_keys=front_image_keys,
             checkpoint_path=FLAGS.bw_reward_classifier_ckpt_path,
         )
+
         env = FWBWFrontCameraBinaryRewardClassifierWrapper(
             env, fw_classifier_func, bw_classifier_func
         )
         env = RecordEpisodeStatistics(env)
 
-        agents = OrderedDict()
+        agents = OrderedDict() # two agent, forward and backward agent
         for k, v in id_to_task.items():
             rng, sampling_rng = jax.random.split(rng)
             agent: DrQAgent = make_drq_agent(
@@ -482,12 +490,14 @@ def main(_):
                 image_keys=image_keys,
                 encoder_type=FLAGS.encoder_type,
             )
+            
             # replicate agent across devices
             # need the jnp.array to avoid a bug where device_put doesn't recognize primitives
             agent: DrQAgent = jax.device_put(
                 jax.tree_map(jnp.array, agent), sharding.replicate()
             )
             agents[v] = agent
+    
     else:
         rng, sampling_rng = jax.random.split(rng)
         agent: DrQAgent = make_drq_agent(
@@ -497,11 +507,13 @@ def main(_):
             image_keys=image_keys,
             encoder_type=FLAGS.encoder_type,
         )
+
         # replicate agent across devices
         # need the jnp.array to avoid a bug where device_put doesn't recognize primitives
         agent: DrQAgent = jax.device_put(
             jax.tree_map(jnp.array, agent), sharding.replicate()
         )
+
 
     if FLAGS.learner:
         sampling_rng = jax.device_put(sampling_rng, device=sharding.replicate())
@@ -524,6 +536,7 @@ def main(_):
             for traj in trajs:
                 demo_buffer.insert(traj)
         print(f"demo buffer size: {len(demo_buffer)}")
+
 
         # learner loop
         print_green("starting learner loop")

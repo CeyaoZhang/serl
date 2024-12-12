@@ -47,6 +47,7 @@ if __name__ == "__main__":
         image_keys=image_keys,
         checkpoint_path="/home/undergrad/code/serl_dev/examples/async_bin_relocation_fwbw_drq/fw_classifier_ckpt",
     )
+
     rng, key = jax.random.split(rng)
     bw_classifier_func = load_classifier_func(
         key=key,
@@ -54,6 +55,7 @@ if __name__ == "__main__":
         image_keys=image_keys,
         checkpoint_path="/home/undergrad/code/serl_dev/examples/async_bin_relocation_fwbw_drq/bw_classifier_ckpt",
     )
+    
     env = FWBWFrontCameraBinaryRewardClassifierWrapper(
         env, fw_classifier_func, bw_classifier_func
     )

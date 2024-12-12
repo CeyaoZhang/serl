@@ -84,6 +84,7 @@ def make_drq_agent(
     encoder_type="small",
     discount=0.96,
 ):
+    
     agent = DrQAgent.create_drq(
         jax.random.PRNGKey(seed),
         sample_obs,

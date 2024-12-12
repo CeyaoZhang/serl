@@ -17,10 +17,6 @@ from serl_launcher.common.evaluation import evaluate
 from serl_launcher.utils.timer_utils import Timer
 from serl_launcher.wrappers.chunking import ChunkingWrapper
 from serl_launcher.utils.train_utils import concat_batches
-
-from agentlace.trainer import TrainerServer, TrainerClient
-from agentlace.data.data_store import QueuedDataStore
-
 from serl_launcher.utils.launcher import (
     make_drq_agent,
     make_trainer_config,
@@ -28,6 +24,10 @@ from serl_launcher.utils.launcher import (
 )
 from serl_launcher.data.data_store import MemoryEfficientReplayBufferDataStore
 from serl_launcher.wrappers.serl_obs_wrappers import SERLObsWrapper
+
+from agentlace.trainer import TrainerServer, TrainerClient
+from agentlace.data.data_store import QueuedDataStore
+
 from franka_env.envs.relative_env import RelativeFrame
 from franka_env.envs.wrappers import (
     GripperCloseEnv,
@@ -68,9 +68,7 @@ flags.DEFINE_string("demo_path", None, "Path to the demo data.")
 flags.DEFINE_integer("checkpoint_period", 0, "Period to save checkpoints.")
 flags.DEFINE_string("checkpoint_path", None, "Path to save checkpoints.")
 
-flags.DEFINE_integer(
-    "eval_checkpoint_step", 0, "evaluate the policy from ckpt at this step"
-)
+flags.DEFINE_integer("eval_checkpoint_step", 0, "evaluate the policy from ckpt at this step")
 flags.DEFINE_integer("eval_n_trajs", 5, "Number of trajectories for evaluation.")
 
 flags.DEFINE_boolean(

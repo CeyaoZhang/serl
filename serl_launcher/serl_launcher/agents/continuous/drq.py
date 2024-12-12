@@ -51,6 +51,7 @@ class DrQAgent(SACAgent):
         critic_subsample_size: Optional[int] = None,
         image_keys: Iterable[str] = ("image",),
     ):
+        
         networks = {
             "actor": actor_def,
             "critic": critic_def,
@@ -150,6 +151,7 @@ class DrQAgent(SACAgent):
                 )
                 for image_key in image_keys
             }
+
         elif encoder_type == "resnet":
             from serl_launcher.vision.resnet_v1 import resnetv1_configs
 
@@ -162,6 +164,7 @@ class DrQAgent(SACAgent):
                 )
                 for image_key in image_keys
             }
+
         elif encoder_type == "resnet-pretrained":
             from serl_launcher.vision.resnet_v1 import (
                 PreTrainedResNetEncoder,
@@ -182,6 +185,7 @@ class DrQAgent(SACAgent):
                 )
                 for image_key in image_keys
             }
+            
         else:
             raise NotImplementedError(f"Unknown encoder type: {encoder_type}")
 
